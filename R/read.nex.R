@@ -1,12 +1,18 @@
+## This code is part of the ips package
+## © C. Heibl 2014 (last update 2017-04-13)
+
+#' @rdname read
+#' @export
+
 read.nex <- function(x){
 	
 	x <- scan(x, what = "c", quiet = TRUE)
 		
 	## eliminate comments
 	## ------------------
-	left <- grep("\\[", x)
-	right <- grep("\\]", x)
-	if ( length(left) > 0 ){
+	left <- grep("[[]", x)
+	right <- grep("[]]", x)
+	if ( length(left) > 0 & length(right) > 0 ){
 	  m <- cbind(left, right)
 	  x <- x[-unlist(apply(m, 1, function(x) x[1]:x[2]))]
 	}

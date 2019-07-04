@@ -1,7 +1,7 @@
-## package: ips
-## called by: USER
-## author: Christoph Heibl (at gmx.net)
-## last update: 2014-07-30
+## This code is part of the megaptera package
+## © C. Heibl 2014 (last update 2016-11-08)
+
+#' @export
 
 fixNodes <- function(phy){
   
@@ -38,23 +38,23 @@ fixNodes <- function(phy){
   
   ## fix tip- and nodelabels
   ## -----------------------
-  trans <- cbind(unfixed$edge[, 2], phy$edge[, 2])
+  trans <- data.frame(unfixed = unfixed$edge[, 2], 
+                      fixed = phy$edge[, 2])
   ttrans <- trans[trans[, 2] <= Ntip(phy), ]
   ntrans <- trans[trans[, 2] > Ntip(phy), ]
-  phy$tip.label <- phy$tip.label[match(ttrans[, 1], ttrans[, 2])]
-  phy$node.label[-1] <- phy$node.label[-1][match(ntrans[, 1], ntrans[, 2])]
+  tid <- match(ttrans$unfixed, ttrans$fixed)
+  phy$tip.label <- phy$tip.label[tid]
+  nid <- match(ntrans$unfixed, ntrans$fixed)
+  phy$node.label[-1] <- phy$node.label[-1][]
   
-#   ADD: FIX NON-CANONICAL NODELABELS
-  
-  # fix <node.label> element
-  # ------------------------
-#   id <- node.trans(source = unfixed, target = phy, index = TRUE)
-#   sdtnames <- c("edge", "edge.length", "Nnode", "tip.label")
-#   if ( !all(names(phy) %in% sdtnames) ){
-#     nls <- which(!names(phy) %in% sdtnames)
-#     for ( i in nls )
-#       phy[[i]] <- phy[[i]][id]
-#   }  
-  
+  # fix additional <node.label> elements
+  # ------------------------------------
+  sdtnames <- c("edge", "edge.length", "Nnode", "tip.label")
+  if ( !all(names(phy) %in% sdtnames) ){
+    nls <- which(!names(phy) %in% sdtnames)
+    for ( i in nls )
+      #phy[[i]] <- phy[[i]][id]
+      phy[[i]][-1] <- phy[[i]][-1][nid]
+  }  
   phy
 }

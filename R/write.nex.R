@@ -1,113 +1,155 @@
-## PACKAGE: ips
-## CALLED BY: USER, mrbayes
-## AUTHOR: Christoph Heibl (at gmx.net)
-## LAST UPDATE: 2014-08-11
-write.nex <-
-function(x, file = "", interleave = 60, taxblock = FALSE){
-	
-	if (class(x) == "alignment")
-		stop ("Sequence alignment must be of class 'DNAbin'")
-	
-	str2cha <- function(x){unlist(strsplit(x, ""))}
-	
-	if (class(x) == "DNAbin") datatype <- "dna"
-	if (class(x) == "dist") datatype <- "distances"
-	if (class(x) == "data.frame") datatype <- "standard"
-	missing <- if("?" %in% x[[1]]) "?" else "N"
-	
-	ntax <-  if (datatype == "distances") 
-		attr(x, "Size") else dim(x)[[1]]
-	nchar <- dim(x)[[2]]
-	taxnames <- if (datatype == "distances") 
-		labels(x) else rownames(x) 
-	
-	header <- c("#NEXUS", 
-		paste("\n[created by ips on ", date(), "]\n", sep = ""))
-	
-	# TAXA BLOCK
-	# -----------------
-	if (taxblock){
-		tb <- c("begin taxa;", 
-			paste("\tdimensions ntax=", ntax,";", sep = ""),
-			"\ttaxlabels",
-			paste("\t", taxnames, sep = ""), ";\n")
-	}
-	
-	# taxonnames of same length
-	# -------------------------
-	len <- nchar(taxnames)
-	mlen <- max(len)
-	len <- mlen - len + 1
-	foo <- function(x){
-		x <- rep(" ", x)
-		paste(x, collapse = "")
-	}
-	ws <- lapply(len, foo)
-	taxnames <- paste(taxnames, ws, sep = "")
-	
-	# indices of partitions
-	# ---------------------
-	int <- if (!is.numeric(interleave)) "" else " interleave"
-	if (!interleave) interleave <- nchar
-	nbpart <- ceiling(nchar/interleave)
-	pt <- matrix(nrow = nbpart, ncol = 2)
-	pt[1, ] <- c(1, interleave)
-	if (nbpart > 1)
-		for (i in 2:(dim(pt)[1])){
-		    pt[i, ] <- c(pt[i - 1, 2] + 1, pt[i - 1, 2] + interleave)
-		    pt[nbpart, 2] <- nchar
-		}
-		
-	# assemble matrix
-	# ---------------
-	m <- "matrix"
-	for (i in seq(along = pt[, 1])){
-		sm <- as.character(x[, pt[i, 1]:pt[i, 2]])
-		if (is.null(dim(sm))) sm <- as.matrix(sm, ncol = 1)
-		sm <- apply(sm, 1, paste, collapse = "")
-		sm <- paste(taxnames, sm)
-		m <- c(m, sm)
-	}
-	m <- c(m, ";\nend;")
-	
-	
-	# write DATA BLOCK
-	# -----------------
-	if (datatype == "dna" || datatype == "standard"){
-	
-		if (datatype == "standard" && !identical(x[1, 1], 
-		    round(x[1, 1]))) 
-			datatype <- "continuous"
-		
-		if (!datatype == "standard") dt <- datatype		
-		else dt <- paste(datatype, " symbols=\"", 
-		paste(unique(unlist(x)), collapse = " "), "\"", 		
-		    sep = "")
-		
-	data <- if (taxblock) "characters" else "data"
-	
-	# assemble DATA BLOCK
-	# -------------------
-	db <- c(paste("begin ", data, ";", sep = ""),
-		paste("\tdimensions ntax=", ntax, " nchar=", nchar, ";",
-		    sep = ""),
-		paste("\tformat datatype=", dt, " missing=", missing,
-		    " gap=-", int, ";", sep = ""),
-		m
-	)
-	}
-	
-	# assemble NEXUS file:
-	# --------------------
-	if (taxblock) nex <- c(header, tb, db)					
-    else nex <- c(header, db)
-		
-	# write NEXUS file
-	# ----------------
-	if ( file == "" ) {
-    cat(nex, sep = "\n")
-    invisible(nex)
-	} else {
-    write(nex, file = file)
-	}
+## This code is part of the ips package
+## © C. Heibl 2014 (last update 2019-06-21)
+
+#' @export
+
+write.nex <- function(x, file, block.width = 60, 
+                      taxblock = FALSE){
+  
+  ## A data frame is a list: is.list(data.frame) == TRUE !!!
+  if (!is.list(x) | is.data.frame(x)){
+    x <- list(x)
+  }
+    
+  ## Auxiliary function 1: Asses datatype
+  ## ------------------------------------
+  getDataType <- function(x){
+    datatype <- class(x)
+    datatype[datatype == "DNAbin"] <- "dna"
+    datatype[datatype == "dist"] <- "distances"
+    datatype[datatype == "data.frame"] <- "standard"
+    datatype
+  }
+  
+  ## Auxiliary function 2: Asses token used for missing data 
+  ## (function adapted for data frames 2016-01-26)
+  ## ---------------------------------------------
+  m <- function(x, datatype) {
+    if (getDataType(x) == "standard") {
+      n <- ifelse(any(x == "?"), "?", "N")
+    } else {
+      n <- ifelse("as.raw(2)" %in% x, "?", "N")
+    }
+    n
+  }
+  ## Nucleotide positions in partitions
+  ## ----------------------------------
+  p <- cbind(rep(1, length(x)), sapply(x, ncol))
+  if (nrow(p) > 1) {
+    for ( i in 2:nrow(p) ){
+      p[i, 1] <- p[i - 1, 2] + 1
+      p[i, 2] <- p[i, 1] + p[i, 2] -1
+    }
+  }
+  
+  ## Assemble info data
+  ## ------------------
+  info <- data.frame(datatype = sapply(x, getDataType),
+                     missing = sapply(x, m),
+                     length = sapply(x, ncol),
+                     p)
+  names(info)[4:5] <- c("from", "to")
+  
+  x <- do.call(cbind.DNAbin, c(x, fill.with.gaps = TRUE))
+  ntax <- (nrow(x))
+  nchar <- sum(info$length)
+  #   if ( datatype == "distances" ){
+  #     ntax <- attr(x, "Size")
+  #     taxnames <- labels(x)
+  #   } else {
+  #     ntax <- nrow(x)
+  
+  #   }
+  
+  ## assemble NEXUS file
+  ## -------------------
+  nex <- c(
+    "#NEXUS", 
+    paste("\n[created by ips on ", 
+          date(), "]\n", sep = ""))
+  
+  # TAXA BLOCK (optional)
+  # ---------------------
+  if ( taxblock ){
+    nex <- c(
+      nex,
+      "begin taxa;", 
+      paste("\tdimensions ntax=", ntax,";", sep = ""),
+      "\ttaxlabels",
+      paste("\t", rownames(x), sep = ""), ";\n"
+    )
+  }
+  
+  ## adding whitespace to taxonnames to 
+  ## get equal string lengths
+  ## ------------------------
+  ws <- nchar(rownames(x))
+  ws <- max(ws) - ws
+  ws <- lapply(ws, function(x) paste(rep(" ", x), 
+                                     collapse = ""))
+  rownames(x) <- paste(rownames(x), ws, sep = "")
+  
+  if ( is.numeric(block.width) ){
+    interleave <- " interleave"
+  } else {
+    interleave <- ifelse(nrow(info) > 1, " interleave", "")
+    block.width <- NULL
+  }
+  
+  m <- vector("list", nrow(info))
+  for (i in seq_along(m)){
+    mm <- x[, info$from[i]:info$to[i]]
+    bw <- ifelse(is.null(block.width), ncol(mm), block.width)
+    m[[i]] <- matrixBlock(mm, bw)
+    if (nrow(info) > 1){
+      cmt <- paste("[Position ", info$from[i], "-", 
+                   info$to[i], ": ", rownames(info)[i], 
+                   " (", info$length[i], "bp)]", 
+                   sep = "")
+      m[[i]] <- c(cmt, m[[i]])
+    }
+  }
+  m <- c("matrix", unlist(m), ";", "end;")
+  
+  # write DATA BLOCK
+  # -----------------
+  #   if ( datatype == "dna" || datatype == "standard" ){
+  #     if ( datatype == "standard" && !identical(x[1, 1], round(x[1, 1])) ) 
+  #       datatype <- "continuous"
+  #     if ( !datatype == "standard" ){
+  #       dt <- datatype
+  #     } else {
+  #       dt <- paste(datatype, " symbols=\"", 
+  #                   paste(unique(unlist(x)), collapse = " "), "\"", 		
+  #                   sep = "")
+  #     }
+  
+  # assemble DATA BLOCK
+  # -------------------
+  nex <- c(
+    nex,
+    paste("begin", ifelse(taxblock, "characters;", "data;")),
+    paste("\tdimensions ntax=", ntax, 
+          " nchar=", nchar, ";", sep = ""),
+    paste("\tformat datatype=", unique(info$datatype), 
+          " missing=", unique(info$missing),
+          " gap=-", interleave, ";", sep = ""),
+    m
+  )
+  #   }
+  
+  # write NEXUS file
+  # ----------------
+  if ( missing(file) ) {
+    ## return character vector:
+    return(nex) 
+  } else {
+    if ( file == "" ) {
+      ## print onto screen:
+      cat(nex, sep = "\n")
+    } else {
+      ## write to file:
+      write(nex, file = file)
+    }
+  }
 }

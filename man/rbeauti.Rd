@@ -8,14 +8,15 @@ This function is intended to prepare XML files for BEAST with R. BEAST uses an M
 }
 
 \usage{
-rbeauti(s, file, taxonset)
+rbeauti(..., file, template = "standard", taxonset)
 }
 
 \arguments{
 
-  \item{s}{An object of class \code{\link{DNAbin}}.}
+  \item{...}{one or more object(s) of class \code{\link{DNAbin}}.}
 	
   \item{file}{A connection, or a character string naming the file to write to. If left empty the XML tree will be printed to the screen (see Examples).}
+  \item{template}{\emph{Currently unused.}}
  
   \item{taxonset}{A list containing one or more taxon sets.}
 %  
@@ -39,7 +40,7 @@ rbeauti(s, file, taxonset)
 }
 %
 \details{
-\code{rbeauti} has been completely rewritten to work with \bold{BEAST 2}. Currently \code{rbeauti} offers few options, because the idea is not to create ready-to-use XML file. That can be done convieniently with \bold{BEAUti} (the BEAST package's genuine XML generator). Instead, \code{rbeauti} is intended to make the definition of large numbers of taxon sets easy. The creation of taxon sets can be done via R scripts and the resulting XML files can be further modified with BEAUti.
+\code{rbeauti} has been completely rewritten to work with \bold{BEAST 2}. Currently \code{rbeauti} offers few options, because the idea is not to create ready-to-use XML file. That can be done conveniently with \bold{BEAUti} (the BEAST package's genuine XML generator). Instead, \code{rbeauti} is intended to make the definition of large numbers of taxon sets easy. The creation of taxon sets can be done via R scripts and the resulting XML files can be further modified with BEAUti.
 }
 %
 \references{

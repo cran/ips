@@ -1,3 +1,4 @@
+* prank: setwd eliminieren
 * raxml(): -f und randomn seeds in Ordnung bringen
 
 * raxml(): -k integrieren (bs with branch lengths)

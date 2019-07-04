@@ -1,20 +1,24 @@
+## This code is part of the ips package
+## © C. Heibl 2014 (last update 2017-12-20)
+
+#' @rdname oi
+#' @export
+
 # 1. add option stemgroup
 # 2. write example
 # 3. check for nonvalid group members
-# 4. 
-
 
 noi <- function(phy, group, regex = FALSE, stem = FALSE, 
                 monophyletic = FALSE){
+  
+  ## check phylogeny
+  if ( !inherits(phy, "phylo") ) 
+    stop("'phy' is not of class 'phylo'")  
 	
-	# test to filter out trees with non-consecutive tip labels
-	# --------------------------------------------------------
-	canonical <- seq_along(phy$tip.label)
-	given <- phy$edge[, 2][phy$edge[, 2] %in% canonical]
-	given <- as.integer(given)
-	if ( !identical(canonical, given) ) 
-	  stop("tips are not numbered consecutively.",
-	       " Type '?fixNodes' for help.")
+	# test to filter out trees with 
+  # non-consecutive tip labels
+	# ------------------------------
+  are.tips.consecutive(phy)
 	
 	# core function
 	# -------------
@@ -36,32 +40,32 @@ noi <- function(phy, group, regex = FALSE, stem = FALSE,
 	} # end of get.mrca
 	
 	# turn 'group' to list
-	if ( !is.list(group) ) group <- list(group)
+	if (!is.list(group)) group <- list(group)
   
   ## turn factor to character strings
   ## --------------------------------
-  if ( is.factor(group[[1]]) ){
+  if (is.factor(group[[1]])){
     defactor <- function(x) levels(x)[x]
     group <- lapply(group, defactor)
   }
   
 	## convert tip numbers to tip labels
 	## ---------------------------------
-	if ( mode(group[[1]]) == "numeric" & !regex )
+	if (mode(group[[1]]) == "numeric" & !regex)
 	  group <- lapply(group, function(x, phy) 
 	    phy$tip.label[x], phy = phy)
   
  	# check tip labels
 	# ----------------
 	chk <- setdiff(unlist(group), phy$tip.label)
-	if ( length(chk) > 0 & !regex )						
+	if (length(chk) > 0 & !regex)						
 	    stop(paste("tiplabels in 'group', but not in 'phy':\n", paste(chk, collapse = "\n")))
 		
 	nodes <- sapply(group, get.mrca, phy = phy, regex = regex)
   
   ## check for monophyly
   ## -------------------
-  if ( monophyletic ){
+  if (monophyletic){
     is.mp <- function(phy, node)
       phy$tip.label[descendants(phy, node)]
     tips <- lapply(nodes, is.mp, phy = phy)

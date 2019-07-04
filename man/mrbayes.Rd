@@ -1,62 +1,49 @@
 \name{mrbayes}
 \Rdversion{1.1}
 \alias{mrbayes}
-\alias{mrbayes.mixed}
-
 \title{Bayesian MCMC Tree Search with MrBayes}
-
 \description{
-This function is a wrapper for Bayesian phylogenetic tree search through MrBayes (Ronquist & Huelsenbeck, 2003) with either DNA (\code{mrbayes}) or morphological (\code{mrbayes.mixed}) data.
+Provides a wrapper for Bayesian phylogenetic tree search through MrBayes (Huelsenbeck & Ronquist, 2001; Ronquist & Huelsenbeck, 2003).
 }
-
 \usage{
-mrbayes(x, file = "", nst = 6, rates = "invgamma", ngammacat = 4, 
-    nruns = 2, ngen = 1e+06, printfreq = 100, samplefreq = 10, 
-    nchains = 4, savebrlens = "yes", temp = 0.2, burnin = 10, 
-    contype = "allcompat", run = FALSE)
-
-
-mrbayes.mixed(x, file, nst = 6, rates = "invgamma", ngammacat = 4, nruns = 2, 
-	ngen = 1e+06, printfreq = 100, samplefreq = 10, nchains = 4,
-	savebrlens = "yes", temp = 0.2, burnin = 10, contype = "allcompat", run = TRUE)
+mrbayes(x, file = "", lset, prset, mcmc, unlink, constraint,
+        burnin = 10, contype = "allcompat", exec, run = FALSE)
 }
-
 \arguments{
-  \item{x}{An object of class \code{\link{DNAbin}} in the case of \code{mrbayes} or a matrix of mode character in the case of \code{mrbayes.mixed}.}
+  \item{x}{
+An object of class \code{\link{DNAbin}} in the case of \code{mrbayes}.
+  }
+  \item{file}{
+A character string, giving the name of the MrBayes input file.
+  }
+  \item{lset}{
+A list as returned by \code{\link{mrbayes.lset}} containing the parameter settings of the model of molecular evolution.  
+  }
+  \item{prset}{
+ A list as returned by \code{\link{mrbayes.prset}} containing the parameter setting for the prior distributions. 
+  }
+  \item{mcmc}{
+A list as returned by \code{\link{mrbayes.mcmc}} containing the parameter setting for the Markov chain Monte Carlo (MCMC).  
+  }
+  \item{unlink}{
   
-  \item{file}{A character string, giving the name of the MrBayes input file.}
+  }
+  \item{constraint}{
   
-  \item{nst}{An integer giving the number of rates in the model of sequence evolution.}
-  
-  \item{rates}{A character string; allowed are \code{"equal"}, \code{"gamma"}, \code{"propinv"}, \code{"invgamma"}, and \code{"adgamma"}; the default is \code{"equal"}.}
-  
-  \item{ngammacat}{An integer; the number rate categories for the discretized Gamma distribution; the default is \code{4}.}
-  
-  \item{nruns}{An integer; the number of runs.}
-  
-  \item{ngen}{An integer; the number of states of the MCMC.}
-  
-  \item{printfreq}{An integer; the interval between states of the MCMC to be printed on the screen}
-  
-  \item{samplefreq}{An integer; the interval between states of the MCMC to be \bold{sampled}.
+  }
+  \item{burnin}{
+An integer; the number of samples from the MCMC to be discarded prior to further analysis.
+  }
+  \item{contype}{
+A character string; the type of consensus tree calculated from the posterior distribution of trees: either \code{"halfcompat"} (majority-rule consensus tree) or \code{"allcombat"} (strict consensus tree).
+  }
+  \item{exec}{
+  A character string giving the full path of the MrBayes program.
+  }
+  \item{run}{
+Logical; \code{run = FALSE} will only print the NEXUS file, \code{run = TRUE} will also start the MCMC runs, if \code{exec} is correctly specified.
+  }
 }
-
-  \item{nchains}{An integer; number of Metropolis coupled MCMCs in each run.}
-  
-  \item{savebrlens}{Logical; shall branch lengths be saved.}
-  
-  \item{temp}{
-%%     ~~Describe \code{temp} here~~
-}
-
-  \item{burnin}{An integer; the number of samples from the MCMC to be discarded prior to further analysis.}
-  
-  \item{contype}{A character string; the type of consensus tree calculated from the posterior distribution of trees: either \code{"halfcompat"} (majority-rule consensus tree) or \code{"allcombat"} (strict consensus tree).
-}
-  
-  \item{run}{Logical; \code{run = FALSE} will only print the NEXUS file, \code{run = TRUE} will also start the MCMC runs, if the \code{path} argument is correctly specified.}
-}
-
 \details{ 	
 \code{mrbayes} was last updated and tested with MrBayes \bold{v3.2.2} under R 3.1.0 on a x86_64-apple-darwin10.8.0 (64-bit) platform. It is intended to offer a simply parameterized building block for larger scripts.	
 }
@@ -72,7 +59,6 @@ Ronquist F. & J. P. Huelsenbeck. 2003. MrBayes 3: Bayesian phylogenetic inferenc
 	
 MrBayes website: \url{http://mrbayes.sourceforge.net/}.
 }
-
 \author{Christoph Heibl}
 
 \seealso{
@@ -80,13 +66,18 @@ MrBayes website: \url{http://mrbayes.sourceforge.net/}.
 }
 
 \examples{	
-# DNA sequence data:
-# ------------------
 data(ips.cox1)
 x <- ips.cox1[, 100:140] # tiny alignment
+mrbayes(x, file = "", mcmc = mrbayes.mcmc(ngen = 100), run = FALSE)
 
-# print NEXUS file with MrBayes block to working directory
-# --------------------------------------------------------
-mrbayes(x, file = "", ngen = 100, run = FALSE)
-    
+\dontrun{
+
+library(phangorn)
+tree <- rtree(10)
+Y1 <- simSeq(tree, l = 20)
+Y2 <- simSeq(tree, l = 20, type = "USER", levels=c("0", "1"))
+Y <- cbind(as.character(Y1), as.character(Y2))
+mrbayes(Y, file = "", run = FALSE)
+}
+
 }
